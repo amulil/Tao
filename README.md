@@ -7,15 +7,27 @@
 ## 算法实现
 
 - [x] PPO
+  - [x] discrete action
+  - [ ] continuous action
+  - [ ] atari
 - [ ] DDPG
 - [ ] SAC
 - [ ] DQN
 - [ ] TD3
 
+[例子](https://github.com/amulil/Tao/tree/main/examples)
+
 ## 基准
 
 - [ ] sb3
 - [ ] cleanrl
+
+## 本地运行
+```bash
+git clone https://github.com/amulil/Tao.git && cd tao
+poetry install
+poetry shell jupyter notebook # run examples in notebook
+```
 
 ## 使用
 
