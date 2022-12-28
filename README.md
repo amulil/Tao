@@ -26,7 +26,8 @@
 ```bash
 git clone https://github.com/amulil/Tao.git && cd tao
 poetry install
-poetry shell jupyter notebook # run examples in notebook
+poetry shell 
+jupyter notebook # run examples in notebook
 ```
 
 ## 使用
@@ -34,6 +35,7 @@ poetry shell jupyter notebook # run examples in notebook
 ```python
 # ppo example
 # train model
+from tao import PPO
 model = PPO(env_id="CartPole-v1")
 model.learn()
 
