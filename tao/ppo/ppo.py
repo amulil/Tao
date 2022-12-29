@@ -9,6 +9,14 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 
+from stable_baselines3.common.atari_wrappers import (  # isort:skip
+    ClipRewardEnv,
+    EpisodicLifeEnv,
+    FireResetEnv,
+    MaxAndSkipEnv,
+    NoopResetEnv,
+)
+
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
@@ -42,6 +50,7 @@ class PPO(nn.Module):
         target_kl=None,
         seed=1,
         device="cpu",
+        atari_env=False,
         torch_deterministic=True,
     ):
         super().__init__()
@@ -72,26 +81,45 @@ class PPO(nn.Module):
         self.torch_deterministic = torch_deterministic
         self.batch_size = int(self.num_envs * self.num_steps)
         self.minibatch_size = int(self.batch_size // self.num_minibatches)
+        self.atari_env = atari_env
         self.envs = gym.vector.SyncVectorEnv(
             [self._make_env(self.env_id, self.seed + i, i, self.capture_video, self.run_name) for i in range(self.num_envs)]
         )
-        self.critic = nn.Sequential(
-            layer_init(nn.Linear(np.array(self.envs.single_observation_space.shape).prod(), 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 1), std=1.0),
-        )
-        self.actor = nn.Sequential(
-            layer_init(nn.Linear(np.array(self.envs.single_observation_space.shape).prod(), 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
-            layer_init(nn.Linear(64, self.envs.single_action_space.n), std=0.01),
-        )
+
+        if self.atari_env:
+            # shared_network
+            self.network = nn.Sequential(
+                layer_init(nn.Conv2d(4, 32, 8, stride=4)),
+                nn.ReLU(),
+                layer_init(nn.Conv2d(32, 64, 4, stride=2)),
+                nn.ReLU(),
+                layer_init(nn.Conv2d(64, 64, 3, stride=1)),
+                nn.ReLU(),
+                nn.Flatten(),
+                layer_init(nn.Linear(64 * 7 * 7, 512)),
+                nn.ReLU(),
+            )
+            self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
+            self.critic = layer_init(nn.Linear(512, 1), std=1)
+
+        if not self.atari_env:
+            self.critic = nn.Sequential(
+                layer_init(nn.Linear(np.array(self.envs.single_observation_space.shape).prod(), 64)),
+                nn.Tanh(),
+                layer_init(nn.Linear(64, 64)),
+                nn.Tanh(),
+                layer_init(nn.Linear(64, 1), std=1.0),
+            )
+            self.actor = nn.Sequential(
+                layer_init(nn.Linear(np.array(self.envs.single_observation_space.shape).prod(), 64)),
+                nn.Tanh(),
+                layer_init(nn.Linear(64, 64)),
+                nn.Tanh(),
+                layer_init(nn.Linear(64, self.envs.single_action_space.n), std=0.01),
+            )
 
     def _make_env(self, env_id, seed, idx, capture_video, run_name):
-        def thunk():
+        def thunk_base():
             env = gym.make(env_id)
             env = gym.wrappers.RecordEpisodeStatistics(env)
             if capture_video:
@@ -102,12 +130,39 @@ class PPO(nn.Module):
             env.observation_space.seed(seed)
             return env
 
-        return thunk
+        def thunk_atari():
+            env = gym.make(env_id)
+            env = gym.wrappers.RecordEpisodeStatistics(env)
+            if capture_video:
+                if idx == 0:
+                    env = gym.wrappers.RecordVideo(env, f"videos/{run_name}")
+            env = NoopResetEnv(env, noop_max=30)
+            env = MaxAndSkipEnv(env, skip=4)
+            env = EpisodicLifeEnv(env)
+            if "FIRE" in env.unwrapped.get_action_meanings():
+                env = FireResetEnv(env)
+            env = ClipRewardEnv(env)
+            env = gym.wrappers.ResizeObservation(env, (84, 84))
+            env = gym.wrappers.GrayScaleObservation(env)
+            env = gym.wrappers.FrameStack(env, 4)
+            env.seed(seed)
+            env.action_space.seed(seed)
+            env.observation_space.seed(seed)
+            return env
+
+        if self.atari_env:
+            return thunk_atari
+
+        return thunk_base
 
     def _get_value(self, x):
+        if self.atari_env:
+            x = self.network(x / 255.0)
         return self.critic(x)
 
     def _get_action_and_value(self, x, action=None):
+        if self.atari_env:
+            x = self.network(x / 255.0)
         logits = self.actor(x)
         probs = Categorical(logits=logits)
         if action is None:
@@ -141,7 +196,7 @@ class PPO(nn.Module):
         np.random.seed(seed)
         torch.manual_seed(seed)
         torch.backends.cudnn.deterministic = self.torch_deterministic
-        
+
         agent = self.to(device)
         optimizer = optim.Adam(agent.parameters(), lr=self.learning_rate, eps=1e-5)
 
