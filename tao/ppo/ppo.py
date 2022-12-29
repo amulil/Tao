@@ -33,9 +33,9 @@ class PPO(nn.Module):
         wandb_entity=None,
         env_id=None,
         capture_video=False,
-        total_timesteps=500000,
+        total_timesteps=500000,  # atari: 1000000
         learning_rate=2.5e-4,
-        num_envs=4,
+        num_envs=4,  # atari: 8
         num_steps=128,
         anneal_lr=True,
         gamma=0.99,
@@ -43,7 +43,7 @@ class PPO(nn.Module):
         num_minibatches=4,
         update_epochs=4,
         norm_adv=True,
-        clip_range=0.2,
+        clip_range=0.2,  # atari: 0.1
         entropy_coef=0.01,
         vf_coef=0.5,
         max_grad_norm=0.5,
@@ -99,7 +99,7 @@ class PPO(nn.Module):
                 layer_init(nn.Linear(64 * 7 * 7, 512)),
                 nn.ReLU(),
             )
-            self.actor = layer_init(nn.Linear(512, envs.single_action_space.n), std=0.01)
+            self.actor = layer_init(nn.Linear(512, self.envs.single_action_space.n), std=0.01)
             self.critic = layer_init(nn.Linear(512, 1), std=1)
 
         if not self.atari_env:
