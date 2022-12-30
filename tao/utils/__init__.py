@@ -1,4 +1,3 @@
-from tao.utils import metrics
-from tao.utils import huggingface
+from tao.utils import huggingface, metrics
 
 __all__ = ["metrics", "huggingface"]
