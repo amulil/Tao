@@ -45,6 +45,7 @@ class PPO(nn.Module):
         norm_adv=True,
         clip_range=0.2,  # atari: 0.1
         entropy_coef=0.01,
+        clip_vloss=True,
         vf_coef=0.5,
         max_grad_norm=0.5,
         target_kl=None,
@@ -72,6 +73,7 @@ class PPO(nn.Module):
         self.norm_adv = norm_adv
         self.clip_range = clip_range
         self.entropy_coef = entropy_coef
+        self.clip_vloss = clip_vloss
         self.vf_coef = vf_coef
         self.max_grad_norm = max_grad_norm
         self.target_kl = target_kl
@@ -82,6 +84,10 @@ class PPO(nn.Module):
         self.batch_size = int(self.num_envs * self.num_steps)
         self.minibatch_size = int(self.batch_size // self.num_minibatches)
         self.atari_env = atari_env
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = self.torch_deterministic
         self.envs = gym.vector.SyncVectorEnv(
             [self._make_env(self.env_id, self.seed + i, i, self.capture_video, self.run_name) for i in range(self.num_envs)]
         )
@@ -188,14 +194,9 @@ class PPO(nn.Module):
             "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in vars(self).items()])),
         )
 
-        seed = self.seed
+        self.seed
         device = self.device
         envs = self.envs
-
-        random.seed(seed)
-        np.random.seed(seed)
-        torch.manual_seed(seed)
-        torch.backends.cudnn.deterministic = self.torch_deterministic
 
         agent = self.to(device)
         optimizer = optim.Adam(agent.parameters(), lr=self.learning_rate, eps=1e-5)
@@ -297,7 +298,19 @@ class PPO(nn.Module):
                     pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
                     # Value loss
-                    v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+                    newvalue = newvalue.view(-1)
+                    if self.clip_vloss:
+                        v_loss_unclipped = (newvalue - b_returns[mb_inds]) ** 2
+                        v_clipped = b_values[mb_inds] + torch.clamp(
+                            newvalue - b_values[mb_inds],
+                            -self.clip_range,
+                            self.clip_range,
+                        )
+                        v_loss_clipped = (v_clipped - b_returns[mb_inds]) ** 2
+                        v_loss_max = torch.max(v_loss_unclipped, v_loss_clipped)
+                        v_loss = 0.5 * v_loss_max.mean()
+                    else:
+                        v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
 
                     entropy_loss = entropy.mean()
                     loss = pg_loss - self.entropy_coef * entropy_loss + v_loss * self.vf_coef
