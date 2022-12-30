@@ -8,8 +8,8 @@
 
 - [x] PPO
   - [x] discrete action
-  - [ ] continuous action
-  - [ ] atari
+  - [x] continuous action
+  - [x] atari
 - [ ] DDPG
 - [ ] SAC
 - [ ] DQN
@@ -19,21 +19,24 @@
 
 ## 基准
 
+- [x] cleanrl
 - [ ] sb3
-- [ ] cleanrl
+- [ ] openai/baselines
+
+### [Tao vs cleanrl baseline](https://wandb.ai/amulil/tao/reports/Tao-vs-cleanrl-baseline--VmlldzozMjMzMjkx)
+-------
+![](docs/static/1.png)
 
 ## 本地运行
 ```bash
 git clone https://github.com/amulil/Tao.git && cd tao
 poetry install
-poetry shell 
-jupyter notebook # run examples in notebook
+poetry run jupyter notebook # run examples in notebook
 ```
 
 ## 使用
 
 ```python
-# ppo example
 # train model
 from tao import PPO
 model = PPO(env_id="CartPole-v1")
