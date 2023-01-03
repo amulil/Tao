@@ -65,6 +65,7 @@ class DQN(nn.Module):
         self.learning_rate = learning_rate
         self.buffer_size = buffer_size
         self.gamma = gamma
+        self.target_network_frequency = target_network_frequency
         self.batch_size = batch_size
         self.start_e = start_e
         self.end_e = end_e
