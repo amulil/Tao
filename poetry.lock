@@ -10,7 +10,7 @@ python-versions = ">=3.6"
 name = "ale-py"
 version = "0.7.4"
 description = "The Arcade Learning Environment (ALE) - a platform for AI research."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.7"
 
@@ -100,7 +100,7 @@ tests_no_zope = ["cloudpickle", "hypothesis", "mypy (>=0.971,<0.990)", "pympler"
 name = "AutoROM"
 version = "0.4.2"
 description = "Automated installation of Atari ROMs for Gym/ALE-Py"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -118,7 +118,7 @@ accept-rom-license = ["AutoROM.accept-rom-license"]
 name = "AutoROM.accept-rom-license"
 version = "0.5.0"
 description = "Automated installation of Atari ROMs for Gym/ALE-Py"
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -865,7 +865,7 @@ typing-extensions = {version = "*", markers = "python_version < \"3.8\""}
 name = "libtorrent"
 version = "2.0.7"
 description = "Python bindings for libtorrent-rasterbar"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -1196,7 +1196,7 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 name = "opencv-python"
 version = "4.7.0.68"
 description = "Wrapper package for OpenCV python bindings."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6"
 
@@ -1434,6 +1434,14 @@ python-versions = "*"
 
 [package.dependencies]
 pyasn1 = ">=0.4.6,<0.5.0"
+
+[[package]]
+name = "pybullet"
+version = "3.1.8"
+description = "Official Python Interface for the Bullet Physics SDK specialized for Robotics Simulation and Reinforcement Learning"
+category = "main"
+optional = false
+python-versions = "*"
 
 [[package]]
 name = "pycparser"
@@ -2051,12 +2059,13 @@ docs = ["furo", "jaraco.packaging (>=9)", "jaraco.tidelift (>=1.4)", "rst.linker
 testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools", "more-itertools", "pytest (>=6)", "pytest-black (>=0.3.7)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-flake8", "pytest-mypy (>=0.9.1)"]
 
 [extras]
-atari = []
+atari = ["ale-py", "AutoROM", "opencv-python"]
+pybullet = ["pybullet"]
 
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.10"
-content-hash = "7ba457dbc7d2d9bebf1e73250373816803f188610c4f679c6df4be4b3b93d09f"
+content-hash = "6b147ba198a78eae0954d46cf56be4fa9d4aed03bc454228fe4b13af3c52b274"
 
 [metadata.files]
 absl-py = [
@@ -2939,6 +2948,13 @@ pyasn1 = [
 pyasn1-modules = [
     {file = "pyasn1-modules-0.2.8.tar.gz", hash = "sha256:905f84c712230b2c592c19470d3ca8d552de726050d1d1716282a1f6146be65e"},
     {file = "pyasn1_modules-0.2.8-py2.py3-none-any.whl", hash = "sha256:a50b808ffeb97cb3601dd25981f6b016cbb3d31fbf57a8b8a87428e6158d0c74"},
+]
+pybullet = [
+    {file = "pybullet-3.1.8-cp36-cp36m-manylinux1_x86_64.whl", hash = "sha256:0ae9bef2f8ea6b30ee0f8fbc7051801d9b47e82ec8637a47e47a0675d4f03fa4"},
+    {file = "pybullet-3.1.8-cp37-cp37m-manylinux1_x86_64.whl", hash = "sha256:d47ca592b2621fd05e2c234f15858293e6a53bb04cbd29df5c06d5ca7ef2c6e5"},
+    {file = "pybullet-3.1.8-cp38-cp38-manylinux1_x86_64.whl", hash = "sha256:2f4741953b56917231a44ff5767e2b5bb2e8bb2cb1ea6488f555f6754ef90751"},
+    {file = "pybullet-3.1.8-cp39-cp39-manylinux1_x86_64.whl", hash = "sha256:df0ccb74e8e307506fd6cc57e5ad7b2c3b7d23ec2a7c8fa16c02fae863ded904"},
+    {file = "pybullet-3.1.8.tar.gz", hash = "sha256:a7e6c7c77cab39e1559c98e4290c5138247b15d3a26a76a23b2737c159f3f905"},
 ]
 pycparser = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
