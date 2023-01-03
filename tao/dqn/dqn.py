@@ -239,13 +239,16 @@ class DQN(nn.Module):
             if global_step > self.learning_starts:
                 if global_step % self.train_frequency == 0:
                     data = rb.sample(self.batch_size)
-                    if self.atari_env:
-                        data.next_observations = data.next_observations / 255.0
-                        data.observations = data.observations / 255.0
                     with torch.no_grad():
-                        target_max, _ = self.target_network(data.next_observations).max(dim=1)
+                        if self.atari_env:
+                            target_max, _ = self.target_network(data.next_observations / 255.0).max(dim=1)
+                        if not self.atari_env:
+                            target_max, _ = self.target_network(data.next_observations).max(dim=1)
                         td_target = data.rewards.flatten() + self.gamma * target_max * (1 - data.dones.flatten())
-                    old_val = self.q_network(data.observations).gather(1, data.actions).squeeze()
+                    if self.atari_env:
+                        old_val = self.q_network(data.observations / 255.0).gather(1, data.actions).squeeze()
+                    if not self.atari_env:
+                        old_val = self.q_network(data.observations).gather(1, data.actions).squeeze()
                     loss = F.mse_loss(td_target, old_val)
 
                     if global_step % 100 == 0:
