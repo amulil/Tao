@@ -177,9 +177,9 @@ class DDPG(nn.Module):
                 actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
             else:
                 with torch.no_grad():
-                    actions = self._scale_action_value(self.actor(torch.Tensor(obs))).to(device)
+                    actions = self._scale_action_value(self.actor(torch.Tensor(obs).to(device)))
                     actions += torch.normal(0, self.exploration_noise)
-                    actions = actions.cpu().numpy().clip(envs.single_action_space.low, envs.single_action_space.high)
+                    actions = actions.clamp(envs.single_action_space.low, envs.single_action_space.high)
 
             # TRY NOT TO MODIFY: execute the game and log data.
             next_obs, rewards, dones, infos = envs.step(actions)
