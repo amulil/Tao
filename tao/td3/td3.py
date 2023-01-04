@@ -181,7 +181,8 @@ class TD3(nn.Module):
         self.to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.q1_target.load_state_dict(self.q1.state_dict())
-        q_optimizer = optim.Adam(list(self.q1.parameters()), lr=self.learning_rate)
+        self.q2_target.load_state_dict(self.q2.state_dict())
+        q_optimizer = optim.Adam(list(self.q1.parameters()) + list(self.q2.parameters()), lr=self.learning_rate)
         actor_optimizer = optim.Adam(list(self.actor.parameters()), lr=self.learning_rate)
 
         envs.single_observation_space.dtype = np.float32
@@ -202,8 +203,8 @@ class TD3(nn.Module):
                 actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
             else:
                 with torch.no_grad():
-                    actions = self._scale_action_value(self.actor(torch.Tensor(obs))).to(device)
-                    actions += torch.normal(0, self.exploration_noise)
+                    actions = self.actor(torch.Tensor(obs).to(device)) * envs.single_action_space.high
+                    actions += torch.randn_like(actions, device=self.device) * envs.single_action_space.high
                     actions = actions.cpu().numpy().clip(envs.single_action_space.low, envs.single_action_space.high)
 
             # TRY NOT TO MODIFY: execute the game and log data.
@@ -238,47 +239,47 @@ class TD3(nn.Module):
                     next_state_actions = (self.actor_target(data.next_observations) + clipped_noise).clamp(
                         self.envs.single_action_space.low[0], self.envs.single_action_space.high[0]
                     )
-                    qf1_next_target = self.q1_target(data.next_observations, next_state_actions)
-                    qf2_next_target = self.q2_target(data.next_observations, next_state_actions)
-                    min_qf_next_target = torch.min(qf1_next_target, qf2_next_target)
+                    q1_next_target = self.q1_target(torch.cat([data.next_observations, next_state_actions], 1))
+                    q2_next_target = self.q2_target(torch.cat([data.next_observations, next_state_actions], 1))
+                    min_qf_next_target = torch.min(q1_next_target, q2_next_target)
                     next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * self.gamma * (
                         min_qf_next_target
                     ).view(-1)
 
-                qf1_a_values = self.q1(data.observations, data.actions).view(-1)
-                qf2_a_values = self.q2(data.observations, data.actions).view(-1)
-                qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-                qf_loss = qf1_loss + qf2_loss
+                q1_a_values = self.q1(torch.cat([data.observations, data.actions], 1)).view(-1)
+                q2_a_values = self.q2(torch.cat([data.observations, data.actions], 1)).view(-1)
+                q1_loss = F.mse_loss(q1_a_values, next_q_value)
+                q2_loss = F.mse_loss(q2_a_values, next_q_value)
+                q_loss = q1_loss + q2_loss
 
                 # optimize the model
                 q_optimizer.zero_grad()
-                qf_loss.backward()
+                q_loss.backward()
                 q_optimizer.step()
 
                 # update the target network (soft-update q param not delayed)
-                for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
-                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
                 for param, target_param in zip(self.q1.parameters(), self.q1_target.parameters()):
+                    target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+                for param, target_param in zip(self.q2.parameters(), self.q2_target.parameters()):
                     target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
                 if global_step % self.policy_frequency == 0:
-                    actor_loss1 = -self.q1(data.observations, self.actor(data.observations)).mean()
-                    actor_loss2 = -self.q2(data.observations, self.actor(data.observations)).mean()
+                    actor_loss1 = -self.q1(torch.cat([data.observations, self.actor(data.observations)], 1)).mean()
+                    actor_loss2 = -self.q2(torch.cat([data.observations, self.actor(data.observations)], 1)).mean()
                     actor_loss = actor_loss1 + actor_loss2
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
 
-                    for param, target_param in zip(self.q2.parameters(), self.q2_target.parameters()):
+                    for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                         target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
                 if global_step % 100 == 0:
-                    writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), global_step)
-                    writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), global_step)
-                    writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
-                    writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
-                    writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                    writer.add_scalar("losses/qf1_values", q1_a_values.mean().item(), global_step)
+                    writer.add_scalar("losses/qf2_values", q2_a_values.mean().item(), global_step)
+                    writer.add_scalar("losses/q1_loss", q1_loss.item(), global_step)
+                    writer.add_scalar("losses/q2_loss", q2_loss.item(), global_step)
+                    writer.add_scalar("losses/q_loss", q_loss.item() / 2.0, global_step)
                     writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
                     print("SPS:", int(global_step / (time.time() - start_time)))
                     writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)

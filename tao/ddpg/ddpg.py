@@ -177,9 +177,9 @@ class DDPG(nn.Module):
                 actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
             else:
                 with torch.no_grad():
-                    actions = self._scale_action_value(self.actor(torch.Tensor(obs).to(device)))
-                    actions += torch.normal(0, self.exploration_noise)
-                    actions = actions.clamp(envs.single_action_space.low, envs.single_action_space.high)
+                    actions = self.actor(torch.Tensor(obs).to(device)) * envs.single_action_space.high
+                    actions += torch.randn_like(actions, device=self.device) * envs.single_action_space.high
+                    actions = actions.cpu().numpy().clip(envs.single_action_space.low, envs.single_action_space.high)
 
             # TRY NOT TO MODIFY: execute the game and log data.
             next_obs, rewards, dones, infos = envs.step(actions)
@@ -207,12 +207,12 @@ class DDPG(nn.Module):
                 data = rb.sample(self.batch_size)
                 with torch.no_grad():
                     next_state_actions = self.actor_target(data.next_observations)
-                    qf1_next_target = self.q_target(data.next_observations, next_state_actions)
+                    qf1_next_target = self.q_target(torch.cat([data.next_observations, next_state_actions], 1))
                     next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * self.gamma * (qf1_next_target).view(
                         -1
                     )
 
-                qf1_a_values = self.q(data.observations, data.actions).view(-1)
+                qf1_a_values = self.q(torch.cat([data.observations, data.actions], 1)).view(-1)
                 qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
 
                 # optimize the model
@@ -220,7 +220,7 @@ class DDPG(nn.Module):
                 qf1_loss.backward()
                 q_optimizer.step()
 
-                actor_loss = -self.q(data.observations, self.actor(data.observations)).mean()
+                actor_loss = -self.q(torch.cat([data.observations, self.actor(data.observations)], 1)).mean()
                 actor_optimizer.zero_grad()
                 actor_loss.backward()
                 actor_optimizer.step()
