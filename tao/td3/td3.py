@@ -1,4 +1,3 @@
-# docs and experiment results can be found at https://docs.cleanrl.dev/rl-algorithms/ddpg/#ddpg_continuous_actionpy
 import random
 import time
 
@@ -24,10 +23,10 @@ def linear_schedule(start_e: float, end_e: float, duration: int, t: int):
     return max(slope * t + start_e, end_e)
 
 
-class DDPG(nn.Module):
+class TD3(nn.Module):
     def __init__(
         self,
-        model_name="DDPG",
+        model_name="TD3",
         track=False,
         wandb_project_name="tao",
         wandb_entity=None,
@@ -42,6 +41,7 @@ class DDPG(nn.Module):
         exploration_noise=0.1,
         learning_starts=25000,
         policy_frequency=2,
+        noise_clip=0.2,
         seed=1,
         device="cpu",
         torch_deterministic=True,
@@ -62,6 +62,7 @@ class DDPG(nn.Module):
         self.exploration_noise = exploration_noise
         self.learning_starts = learning_starts
         self.policy_frequency = policy_frequency
+        self.noise_clip = noise_clip
         self.seed = seed
         self.run_name = f"{self.env_id}__{self.model_name}__{self.seed}__{total_timesteps}"
         self.device = device
@@ -72,7 +73,7 @@ class DDPG(nn.Module):
         torch.backends.cudnn.deterministic = self.torch_deterministic
         self.envs = gym.vector.SyncVectorEnv([self._make_env(self.env_id, self.seed, 0, self.capture_video, self.run_name)])
 
-        self.q = nn.Sequential(
+        self.q1 = nn.Sequential(
             layer_init(
                 nn.Linear(
                     np.array(self.envs.single_observation_space.shape).prod() + np.prod(self.envs.single_action_space.shape),
@@ -84,7 +85,31 @@ class DDPG(nn.Module):
             nn.ReLU(),
             layer_init(nn.Linear(256, 1)),
         )
-        self.q_target = nn.Sequential(
+        self.q2 = nn.Sequential(
+            layer_init(
+                nn.Linear(
+                    np.array(self.envs.single_observation_space.shape).prod() + np.prod(self.envs.single_action_space.shape),
+                    256,
+                )
+            ),
+            nn.ReLU(),
+            layer_init(nn.Linear(256, 256)),
+            nn.ReLU(),
+            layer_init(nn.Linear(256, 1)),
+        )
+        self.q1_target = nn.Sequential(
+            layer_init(
+                nn.Linear(
+                    np.array(self.envs.single_observation_space.shape).prod() + np.prod(self.envs.single_action_space.shape),
+                    256,
+                )
+            ),
+            nn.ReLU(),
+            layer_init(nn.Linear(256, 256)),
+            nn.ReLU(),
+            layer_init(nn.Linear(256, 1)),
+        )
+        self.q2_target = nn.Sequential(
             layer_init(
                 nn.Linear(
                     np.array(self.envs.single_observation_space.shape).prod() + np.prod(self.envs.single_action_space.shape),
@@ -155,8 +180,8 @@ class DDPG(nn.Module):
 
         self.to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
-        self.q_target.load_state_dict(self.q.state_dict())
-        q_optimizer = optim.Adam(list(self.q.parameters()), lr=self.learning_rate)
+        self.q1_target.load_state_dict(self.q1.state_dict())
+        q_optimizer = optim.Adam(list(self.q1.parameters()), lr=self.learning_rate)
         actor_optimizer = optim.Adam(list(self.actor.parameters()), lr=self.learning_rate)
 
         envs.single_observation_space.dtype = np.float32
@@ -206,34 +231,54 @@ class DDPG(nn.Module):
             if global_step > self.learning_starts:
                 data = rb.sample(self.batch_size)
                 with torch.no_grad():
-                    next_state_actions = self.actor_target(data.next_observations)
-                    qf1_next_target = self.q_target(data.next_observations, next_state_actions)
-                    next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * self.gamma * (qf1_next_target).view(
-                        -1
+                    # rand_like 返回一个和输入大小相同的张量，其由均值为0、方差为1的标准正态分布填充
+                    clipped_noise = (torch.randn_like(data.actions, device=self.device)).clamp(
+                        -self.noise_clip, self.noise_clip
+                    ) * self.envs.single_action_space.high[0]
+                    next_state_actions = (self.actor_target(data.next_observations) + clipped_noise).clamp(
+                        self.envs.single_action_space.low[0], self.envs.single_action_space.high[0]
                     )
+                    qf1_next_target = self.q1_target(data.next_observations, next_state_actions)
+                    qf2_next_target = self.q2_target(data.next_observations, next_state_actions)
+                    min_qf_next_target = torch.min(qf1_next_target, qf2_next_target)
+                    next_q_value = data.rewards.flatten() + (1 - data.dones.flatten()) * self.gamma * (
+                        min_qf_next_target
+                    ).view(-1)
 
-                qf1_a_values = self.q(data.observations, data.actions).view(-1)
+                qf1_a_values = self.q1(data.observations, data.actions).view(-1)
+                qf2_a_values = self.q2(data.observations, data.actions).view(-1)
                 qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+                qf_loss = qf1_loss + qf2_loss
 
                 # optimize the model
                 q_optimizer.zero_grad()
-                qf1_loss.backward()
+                qf_loss.backward()
                 q_optimizer.step()
 
-                actor_loss = -self.q(data.observations, self.actor(data.observations)).mean()
-                actor_optimizer.zero_grad()
-                actor_loss.backward()
-                actor_optimizer.step()
-
-                # update the target network
+                # update the target network (soft-update q param not delayed)
                 for param, target_param in zip(self.actor.parameters(), self.actor_target.parameters()):
                     target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-                for param, target_param in zip(self.q.parameters(), self.q_target.parameters()):
+                for param, target_param in zip(self.q1.parameters(), self.q1_target.parameters()):
                     target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
+                if global_step % self.policy_frequency == 0:
+                    actor_loss1 = -self.q1(data.observations, self.actor(data.observations)).mean()
+                    actor_loss2 = -self.q2(data.observations, self.actor(data.observations)).mean()
+                    actor_loss = actor_loss1 + actor_loss2
+                    actor_optimizer.zero_grad()
+                    actor_loss.backward()
+                    actor_optimizer.step()
+
+                    for param, target_param in zip(self.q2.parameters(), self.q2_target.parameters()):
+                        target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
                 if global_step % 100 == 0:
-                    writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
-                    writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
                     writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), global_step)
+                    writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), global_step)
+                    writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
+                    writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
+                    writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                    writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
                     print("SPS:", int(global_step / (time.time() - start_time)))
                     writer.add_scalar("charts/SPS", int(global_step / (time.time() - start_time)), global_step)
