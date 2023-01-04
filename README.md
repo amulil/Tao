@@ -3,29 +3,46 @@
 [<img src="https://img.shields.io/badge/license-MIT-blue">](https://github.com/amulil/tao)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![docs](https://img.shields.io/github/deployments/vwxyzjn/cleanrl/Production?label=docs&logo=vercel)]()
+## 算法原理
+
+0. [深度强化学习（DRL）算法汇总](https://zhuanlan.zhihu.com/p/595383059)
+1. [深度强化学习（DRL）算法 1 —— REINFORCE](https://zhuanlan.zhihu.com/p/574479257)
+2. [深度强化学习（DRL）算法 2 —— PPO 之 Clipped Surrogate Objective 篇](https://zhuanlan.zhihu.com/p/574810519)
+3. [深度强化学习（DRL）算法 2 —— PPO 之 GAE 篇](https://zhuanlan.zhihu.com/p/577598804)
+4. [深度强化学习（DRL）算法 3 —— Deep Q-learning(DQN)](https://zhuanlan.zhihu.com/p/595728811)
+5. [深度强化学习（DRL）算法 4 —— Deep Deterministic Policy Gradient (DDPG)](https://zhuanlan.zhihu.com/p/595568507)
+6. [深度强化学习（DRL）算法 5 —— Twin Delayed Deep Deterministic Policy Gradient (TD3)](https://zhuanlan.zhihu.com/p/596086108)
+7. []()
+8. [深度强化学习（DRL）算法 附录1 —— 贝尔曼公式](https://zhuanlan.zhihu.com/p/581273520)
+9. [深度强化学习（DRL）算法 附录 2 —— 策略迭代和价值迭代](https://zhuanlan.zhihu.com/p/595732361)
+10. [深度强化学习（DRL）算法 附录 3 —— 蒙特卡洛方法（MC）和时序差分（TD）](https://zhuanlan.zhihu.com/p/595786697)
 
 ## 算法实现
 
 - [x] PPO
   - [x] discrete action
-  - [x] continuous action
+  - [ ] continuous action
   - [x] atari
-- [ ] DDPG
+- [x] DDPG
 - [ ] SAC
-- [ ] DQN
-- [ ] TD3
-
-[例子](https://github.com/amulil/Tao/tree/main/examples)
+- [x] DQN
+  - [x] discrete action
+  - [x] atari
+- [x] TD3
 
 ## 基准
 
-- [x] cleanrl
+- [x] tao
+- [ ] cleanrl
 - [ ] sb3
 - [ ] openai/baselines
 
-### [Tao vs cleanrl baseline](https://wandb.ai/amulil/tao/reports/Tao-vs-cleanrl-baseline--VmlldzozMjMzMjkx)
+### [Tao baseline](https://wandb.ai/amulil/tao/reports/Tao-baseline--VmlldzozMjU0OTQ3)
 -------
-![](docs/static/1.png)
+#### Cartpole-v1
+![](docs/static/cartpole.png)
+#### atari/BreakoutNoFrameskip-v4
+![](docs/static/breakout.png)
 
 ## 本地运行
 ```bash
