@@ -40,9 +40,9 @@
 ### [Tao baseline](https://wandb.ai/amulil/tao/reports/Tao-baseline--VmlldzozMjU0OTQ3)
 -------
 #### Cartpole-v1
-![](docs/static/cartpole.png)
+![](./docs/static/cartpole.png)
 #### atari/BreakoutNoFrameskip-v4
-![](docs/static/breakout.png)
+![](./docs/static/breakout.png)
 
 ## 本地运行
 ```bash
