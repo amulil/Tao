@@ -33,9 +33,9 @@ class DDPG(nn.Module):
         wandb_entity=None,
         env_id=None,
         capture_video=False,
-        total_timesteps=500000,  # atari: 1000000
-        learning_rate=2.5e-4,
-        buffer_size=10000,
+        total_timesteps=int(1e6),
+        learning_rate=3e-4,
+        buffer_size=int(1e6),
         gamma=0.99,
         tau=0.005,
         batch_size=256,
