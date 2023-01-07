@@ -13,12 +13,13 @@
 5. [深度强化学习（DRL）算法 4 —— Deep Deterministic Policy Gradient (DDPG)](https://zhuanlan.zhihu.com/p/595568507)
 6. [深度强化学习（DRL）算法 5 —— Twin Delayed Deep Deterministic Policy Gradient (TD3)](https://zhuanlan.zhihu.com/p/596086108)
 7. []()
-8. [深度强化学习（DRL）算法 附录1 —— 贝尔曼公式](https://zhuanlan.zhihu.com/p/581273520)
+8. [深度强化学习（DRL）算法 附录 1 —— 贝尔曼公式](https://zhuanlan.zhihu.com/p/581273520)
 9. [深度强化学习（DRL）算法 附录 2 —— 策略迭代和价值迭代](https://zhuanlan.zhihu.com/p/595732361)
 10. [深度强化学习（DRL）算法 附录 3 —— 蒙特卡洛方法（MC）和时序差分（TD）](https://zhuanlan.zhihu.com/p/595786697)
+11. [深度强化学习（DRL）算法 附录 4 —— 一些常用概念（KL 散度、最大熵 MDP etc.）](https://zhuanlan.zhihu.com/p/596733815)
 
 ## 算法实现
-
+- 单智能体
 - [x] PPO
   - [x] discrete action
   - [ ] continuous action
@@ -29,6 +30,9 @@
   - [x] discrete action
   - [x] atari
 - [x] TD3
+- 多智能体
+
+- [ ] MAPPO(IPPO) 
 
 ## 基准
 
