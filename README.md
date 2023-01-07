@@ -12,17 +12,19 @@
 4. [深度强化学习（DRL）算法 3 —— Deep Q-learning(DQN)](https://zhuanlan.zhihu.com/p/595728811)
 5. [深度强化学习（DRL）算法 4 —— Deep Deterministic Policy Gradient (DDPG)](https://zhuanlan.zhihu.com/p/595568507)
 6. [深度强化学习（DRL）算法 5 —— Twin Delayed Deep Deterministic Policy Gradient (TD3)](https://zhuanlan.zhihu.com/p/596086108)
-7. []()
+7. [深度强化学习（DRL）算法 6 —— Soft Actor-Critic (SAC)]()
 8. [深度强化学习（DRL）算法 附录 1 —— 贝尔曼公式](https://zhuanlan.zhihu.com/p/581273520)
 9. [深度强化学习（DRL）算法 附录 2 —— 策略迭代和价值迭代](https://zhuanlan.zhihu.com/p/595732361)
 10. [深度强化学习（DRL）算法 附录 3 —— 蒙特卡洛方法（MC）和时序差分（TD）](https://zhuanlan.zhihu.com/p/595786697)
 11. [深度强化学习（DRL）算法 附录 4 —— 一些常用概念（KL 散度、最大熵 MDP etc.）](https://zhuanlan.zhihu.com/p/596733815)
+12. [深度强化学习（DRL）算法 附录 5 —— CV 基础回顾篇]()
+13. [深度强化学习（DRL）算法 附录 6 —— NLP 基础回顾篇]()
 
 ## 算法实现
 - 单智能体
 - [x] PPO
   - [x] discrete action
-  - [ ] continuous action
+  - [x] continuous action
   - [x] atari
 - [x] DDPG
 - [ ] SAC
