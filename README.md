@@ -33,6 +33,8 @@
 - 多智能体
 
 - [ ] MAPPO(IPPO) 
+- [ ] HATRPO/HAPPO
+- [ ] MA Transformer
 
 ## 基准
 
