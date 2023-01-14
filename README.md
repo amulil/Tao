@@ -19,7 +19,8 @@
 10. [深度强化学习（DRL）算法 附录 3 —— 蒙特卡洛方法（MC）和时序差分（TD）](https://zhuanlan.zhihu.com/p/595786697)
 11. [深度强化学习（DRL）算法 附录 4 —— 一些常用概念（KL 散度、最大熵 MDP etc.）](https://zhuanlan.zhihu.com/p/596733815)
 12. [深度强化学习（DRL）算法 附录 5 —— CV 基础回顾篇](https://zhuanlan.zhihu.com/p/597512439)
-13. [深度强化学习（DRL）算法 附录 6 —— NLP 基础回顾篇]()
+13. [深度强化学习（DRL）算法 附录 6 —— NLP 回顾之基础模型篇](https://zhuanlan.zhihu.com/p/597512525)
+14. [深度强化学习（DRL）算法 附录 6 —— NLP 回顾之预训练模型篇]()
 
 - MADRL
 
